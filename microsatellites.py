@@ -137,8 +137,6 @@ class Matcher:
         self.current_fn = ''
         self.current_header = ''
         self.current_read = ''
-        self.current_read_leadfilter = self.current_read[:self.conf.lead_filter]
-        self.current_read_rearfilter = self.current_read[-self.conf.rear_filter:]
         self.current_results = {}
         self.current_pos_results = {}
         self.current_counter = int(0)
@@ -146,6 +144,10 @@ class Matcher:
         self.current_dirty = 0
         self.current_match_occur_in_read = 0
         self.current_match_occur_outside_filter = 0
+
+    def filter_define(self):
+        self.current_read_leadfilter = self.current_read[:self.conf.lead_filter]
+        self.current_read_rearfilter = self.current_read[-self.conf.rear_filter:]
 
     def cleaner(self):
         self.current_fn = ''
@@ -196,33 +198,26 @@ class Matcher:
         for _ in self.conf.permutation_elements:
             res = product("TGAC", repeat=int(_))
             for i in res:
-                if len(i) == 4:
-                    if i[0] + i[1] == i[2] + i[3]:
-                        continue
-                    else:
-                        rainbow.append("".join(i))
-                elif len(i) == 3:
-                    if i[0] == i[1] == i[2]:
-                        continue
-                    else:
-                        rainbow.append("".join(i))
-                elif len(i) == 2:
-                    if i[0] == i[1]:
-                        continue
-                    else:
-                        rainbow.append("".join(i))
+                rainbow.append("".join(i))
         self.rainbow = tuple(rainbow)
 
     def matrix(self):
         matches = []
         for _ in self.rainbow:
+            filter_only = False
             l = _.strip();
-            if len(l) == 4: matches.append(
-                [re.compile(l), len(l), self.conf.min_adjacent_tetra, self.conf.read_average_length, self.repeater(l, self.conf.min_adjacent_tetra)])
-            if len(l) == 3: matches.append(
-                [re.compile(l), len(l), self.conf.min_adjacent_tri, self.conf.read_average_length, self.repeater(l, self.conf.min_adjacent_tri)])
-            if len(l) == 2: matches.append(
-                [re.compile(l), len(l), self.conf.min_adjacent_di, self.conf.read_average_length, self.repeater(l, self.conf.min_adjacent_di)])
+            if len(l) == 4:
+                if _[0] + _[1] == _[2] + _[3]:
+                    filter_only = True
+                matches.append([re.compile(l), len(l), self.conf.min_adjacent_tetra, self.conf.read_average_length, self.repeater(l, self.conf.min_adjacent_tetra),filter_only])
+            if len(l) == 3:
+                if _[0] == _[1] == _[2]:
+                    filter_only = True
+                matches.append([re.compile(l), len(l), self.conf.min_adjacent_tri, self.conf.read_average_length, self.repeater(l, self.conf.min_adjacent_tri),filter_only])
+            if len(l) == 2:
+                if _[0] == _[1]:
+                    filter_only = True
+                matches.append([re.compile(l), len(l), self.conf.min_adjacent_di, self.conf.read_average_length, self.repeater(l, self.conf.min_adjacent_di),filter_only])
         self.matches = matches
 
     def filter(self):
@@ -290,13 +285,15 @@ def reader(argr):
         file_counter +=1
         with open(i, 'r') as file:
             for line in file:
+                if line[0] == '#':
+                    continue
                 if '@HWI' in line:
                     argr.cleaner()
                     argr.current_fn = file.name
                     argr.current_header = line.replace(" ", "").rstrip('\n')
                     argr.current_read = file.readline().replace(" ", "").rstrip('\n')
                     argr.current_counter = argr.current_counter + 1
-                    argr.current_dirty = 0
+                    argr.filter_define()
                     if argr.current_counter % 500000 == 0: print("{} lines have been processed.".format(argr.current_counter))
                     argr.current_id = argr.gen_id()
                     evaluation(argr)
@@ -306,11 +303,11 @@ def evaluation(argr):
     argr.filter()
     if argr.current_dirty == 0:
         for _ in argr.matches:
-            flag = 0
             if argr.conf.return_di == 'no' and _[1] == 2: continue
-            elif _[2] == 0: continue
+            elif _[5] == True: continue
             elif argr.conf.return_tri == 'no' and _[1] == 3: continue
             elif argr.conf.return_tetra == 'no' and _[1] == 4: continue
+            elif _[2] == 0: continue
             argr.current_match_occur_in_read = len(re.findall(_[0], argr.current_read))
             argr.current_match_occur_outside_filter = len(re.findall(_[0], argr.current_read[argr.conf.lead_filter:-argr.conf.rear_filter]))
             if argr.current_match_occur_in_read > _[2] and not argr.current_dirty:
@@ -322,9 +319,8 @@ def evaluation(argr):
                     elif len(repeat.pattern) / _[1] < _[2]:
                         if argr.conf.return_potential == "yes" and _[1] == 4 and argr.current_match_occur_outside_filter > argr.conf.min_non_adjacent_tetra:
                             argr.current_dirty = 1
-                            argr.current_id += "p"
                             if len(re.findall(_[0], argr.current_read[:argr.conf.lead_filter])) < argr.conf.max_non_adjacent_filter_tetra:
-                                if len(re.findall(_[0], argr.current_read[-argr.conf.rear_filter:])) < argr.conf.max_non_adjacent_filter_tetra:
+                                if len(re.findall(_[0], argr.current_read[-(argr.conf.rear_filter):])) < argr.conf.max_non_adjacent_filter_tetra:
                                     argr.current_result = 1
                                     argr.current_pos_results.update({_[0].pattern: [argr.current_match_occur_outside_filter]})
                                     break
@@ -333,12 +329,10 @@ def evaluation(argr):
                             else:
                                 break
                         elif re.search(repeat, argr.current_read):
-                            argr.current_dirty = 1
                             for m in repeat.finditer(argr.current_read):
                                 if m.span()[0] > argr.conf.lead_filter:
                                     if m.span()[1] < argr.conf.read_average_length - argr.conf.rear_filter:
                                         argr.current_result = 1
-                                        argr.current_id += "m"
                                         argr.current_results.update({_[0].pattern: [argr.current_match_occur_in_read, len(repeat.pattern) / _[1]]})
                                     else:
                                         break
@@ -347,10 +341,12 @@ def evaluation(argr):
             else:
                 continue
         if len(argr.current_results.keys()) > 0 and argr.current_result == 1:
+            argr.current_id += "m"
             if argr.conf.print_result_to_screen == 1:
                 print(argr.reporter())
             argr.result_files()
         elif len(argr.current_pos_results.keys()) > 0 and argr.current_result == 1:
+            argr.current_id += "p"
             argr.result_files()
 
 def main():
