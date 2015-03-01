@@ -1,0 +1,38 @@
+#####################################################################
+#TEST FASTQ FILE
+#This file is used to test the filter and index tests.
+#If you do not want to run a particular test, just replace the @HWI to #HWI
+######################################################################
+#Results: {'TTC': [38, 13.0]}
+#Read should fail on lead filter and not look at rear filter
+@HWI-1KL163:144:H11GYADXX:2:2215:2053:717011:N:0:GCCAATATTCTTTCCC
+CTTCTCCTTCTCCTTCTTCTTCTCCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTTCTCCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTCCTTCTCCTTCTTCTTCTCCTTCTCCTTCTTCTTCTCCTCCTTCTCCTT
+######################################################################
+#Results: {'GAA': [27, 13.0]}
+#rear filter test
+@HWI-1KL163:144:H11GYADXX:2:2215:7982:476811:N:0:GCCAATATTCTTTCC
+ACCTCCAAGAAACAAGATATTGCTCTCAAAGCAAACAAGAGCAAGAAGAAGAAAGTTTTAATTGAGAGCCCTAGTGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAGGAAGAAGAAGAAGAGGAAGAAG
+######################################################################
+#Results: {'TTC': [20, 13.0]}
+#good result
+@HWI-1KL163:144:H11GYADXX:2:2215:1474:773001:N:0:GCCAATATTCTTTCCC
+CTTCTTGAAGTATTTCTTGTCCTTCTTGTCCTTGGTGTAAGTCTTGTCCCTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTCTTGTCTTCATCCTCACTTCTTCTTTCATATGGGCATTGTGCAATGAAGTGCCCATGTTTA
+######################################################################
+#Results: {'GAA': [21, 13.0]}
+#Line should pass
+@HWI-1KL163:144:H11GYADXX:2:2215:6265:289511:N:0:GCCAATATTCTTTCCC
+TTATATTGTTAATTGTCCTCAGGAGCGTAGGGAAGGAGAGAATGACAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGAAGGAGAGGAGCTACAAGAAAGATAGGAATTACAAGAAGAAAACCTATGGTGAGGCACAC
+######################################################################
+######################################################################
+#Test for possible long repeats
+######################################################################
+#Should fail on forward filter
+@HWI-1KL163:144:H11GYADXX:2:2214:17371:535371:N:0:GCCAATATTCTTTCCC
+AAACCCTAAACCCTAAACCCTAAACCCTAACCCTAAACCCTAAACCCTAAACCCCTAAACCCTAACCCCTAAACCCTAAACCCTAAACCCAAAACCTAAACCCAAAACCCTAAACCCTAAACCCCTAACCCTAACCCCAAAACCTAAAACC
+######################################################################
+#Need to add fail on rear filter
+######################################################################
+#Should Pass
+@HWI-1KL163:144:H11GYADXX:2:2214:19598:534341:N:0:GCCAATATTCTTTCCC
+TTATATTGTTAATTGTCCTCATAGGGTTTAGGGTTTGGGGTTTGGGTTTTGGGTTTTGGGGTTTGGGTTTTGGGTTTGGGGTTAGGGGTTTGGGTTTGGGGTTTTGGGTTTGGGGTTATGGGTTTTGGGGGTTATATTGTTAATTGTCCTCA
+######################################################################
