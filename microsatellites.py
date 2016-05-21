@@ -1,7 +1,7 @@
 #!/usr/bin/python3.4
 
 ######################################################
-#Atuhor : Robert Battocletti
+#Author : Robert Battocletti
 #Program Name: microsatellite finder
 #Date Published: 26FEB2014
 #Designed to evaluate fastq files for microsatellites
